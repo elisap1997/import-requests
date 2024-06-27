@@ -1,6 +1,6 @@
 import requests
 
-# Make a request to https://codedamn-classrooms.github.io/webscraper-python-codedamn-classroom-website/
+# Make a request to https://scrapepark.org
 # Store the result in 'res' variable
 res = requests.get(
     'https://scrapepark.org')
