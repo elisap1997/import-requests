@@ -1,11 +1,13 @@
 import requests
+from bs4 import BeautifulSoup
 
 # Make a request to https://scrapepark.org
-# Store the result in 'res' variable
-res = requests.get(
-    'https://scrapepark.org')
-txt = res.text
-status = res.status_code
+page = requests.get(
+    "https://scrapepark.org")
+soup = BeautifulSoup(page.content, 'html.parser')
 
-print(txt, status)
+# Extract title of page
+page_title = soup.title.text
+
 # print the result
+print(page_title)
