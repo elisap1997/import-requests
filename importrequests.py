@@ -7,29 +7,21 @@ page = requests.get(
 soup = BeautifulSoup(page.content, 'html.parser')
 
 # Create top_items as empty list
-all_products = []
+all_links = []
 
-# Extract and store in top_items according to instructions on the left
-products = soup.select('div.thumbnail')
-for product in products:
-    name = product.select('h4 > a')[0].text.strip()
-    description = product.select('p.description')[0].text.strip()
-    price = product.select('h4.price')[0].text.strip()
-    reviews = product.select('div.ratings')[0].text.strip()
-    image = product.select('img')[0].get('src')
+# Extract and store 
+links = soup.select('a')
+for ahref in links:
+    text = ahref.text
+    text = text.strip() if text is not None else ''
 
-    all_products.append({
-        "name": name,
-        "description": description,
-        "price": price,
-        "reviews": reviews,
-        "image": image
-    })
+    href = ahref.get('href')
+    href = href.strip() if href is not None else ''
+    all_links.append({"href": href, "text": text})
 
+keys = all_links[0].keys()
 
-keys = all_products[0].keys()
-
-with open('products.csv', 'w', newline='') as output_file:
+with open('websitetexts.csv', 'w', newline='') as output_file:
     dict_writer = csv.DictWriter(output_file, keys)
     dict_writer.writeheader()
-    dict_writer.writerows(all_products)
+    dict_writer.writerows(all_links)
