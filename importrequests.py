@@ -1,6 +1,7 @@
 import requests
 from bs4 import BeautifulSoup
 import csv
+
 # Make a request
 page = requests.get(
     "https://scrapepark.org/#products")
