@@ -16,44 +16,80 @@ from bs4 import BeautifulSoup
 import csv
 from urllib.parse import urljoin
 
+def safe_extract_text(element, selector, class_name=None):
+    """Safely extract text from an element"""
+    try:
+        if class_name:
+            found = element.find(selector, class_=class_name)
+        else:
+            found = element.find(selector)
+        return found.text.strip() if found else ''
+    except (AttributeError, TypeError):
+        return ''
+
 def scrape_products():
     # Make a request
     base_url = "https://scrapepark.org"
-    page = requests.get(f"{base_url}/#products")
-    soup = BeautifulSoup(page.content, 'html.parser')
+    
+    try:
+        # Instead of making an HTTP request, use the local HTML content
+        with open('products.html', 'r', encoding='utf-8') as file:
+            content = file.read()
+        soup = BeautifulSoup(content, 'html.parser')
+    except FileNotFoundError:
+        print("Warning: products.html not found, attempting HTTP request...")
+        page = requests.get(f"{base_url}/#products")
+        soup = BeautifulSoup(page.content, 'html.parser')
 
     # Create products list
     products = []
 
-    # Find all product containers
-    product_items = soup.find_all('div', class_='product-item')  # Adjust class name based on actual HTML
+    # Find all product boxes
+    product_items = soup.find_all('div', class_='box')
 
     for item in product_items:
         try:
+            # Find the detail box
+            detail_box = item.find('div', class_='detail-box')
+            if not detail_box:
+                continue
+
             # Extract product name
-            name = item.find('h3', class_='product-name').text.strip()  # Adjust class name
-            
-            # Extract price (remove currency symbol and convert to float)
-            price = item.find('span', class_='price').text.strip()  # Adjust class name
-            price = price.replace('$', '').strip()
-            
-            # Extract image URL and make it absolute
-            img_tag = item.find('img')
-            img_url = img_tag.get('src') if img_tag else ''
+            h5_element = detail_box.find('h5')
+            if h5_element:
+                span_element = h5_element.find('span')
+                span_text = span_element.text.strip() if span_element else ''
+                # Get the number part (last text node)
+                number_text = h5_element.contents[-1].strip() if h5_element.contents else ''
+                full_name = f"{span_text} {number_text}".strip()
+            else:
+                full_name = ''
+
+            # Extract price
+            h6_element = detail_box.find('h6')
+            price = h6_element.text.strip().replace('$', '') if h6_element else ''
+
+            # Extract image URL
+            img_box = item.find('div', class_='img-box')
+            img_tag = img_box.find('img') if img_box else None
+            img_url = img_tag.get('src', '') if img_tag else ''
             img_url = urljoin(base_url, img_url) if img_url else ''
 
-            products.append({
-                "Product Name": name,
-                "Price": price,
-                "Product Image": img_url
-            })
-        except AttributeError as e:
-            print(f"Error processing product: {e}")
+            # Only add product if we have at least a name or price
+            if full_name or price:
+                products.append({
+                    "Product Name": full_name,
+                    "Price": price,
+                    "Product Image": img_url
+                })
+
+        except Exception as e:
+            print(f"Error processing product: {str(e)}")
             continue
 
     return products
 
-def save_to_csv(products, filename='products.csv'):
+def save_to_csv(products, filename='skateboards.csv'):
     # Define the field names for CSV
     fields = ["Product Name", "Price", "Product Image"]
 
@@ -62,19 +98,28 @@ def save_to_csv(products, filename='products.csv'):
         dict_writer = csv.DictWriter(output_file, fieldnames=fields)
         dict_writer.writeheader()
         dict_writer.writerows(products)
+        print(f"Data saved to {filename}")
 
 def main():
     try:
         # Scrape products
         products = scrape_products()
         
-        # Save to CSV
-        save_to_csv(products)
-        
-        print(f"Successfully scraped {len(products)} products and saved to products.csv")
+        if products:
+            # Save to CSV
+            save_to_csv(products)
+            print(f"Successfully scraped {len(products)} skateboards")
+            
+            # Print first few entries as sample
+            print("\nSample of scraped data:")
+            for product in products[:3]:
+                print(product)
+        else:
+            print("No products were found to scrape")
     
     except Exception as e:
-        print(f"An error occurred: {e}")
+        print(f"An error occurred: {str(e)}")
+        raise
 
 if __name__ == "__main__":
     main()
