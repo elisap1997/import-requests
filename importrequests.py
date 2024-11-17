@@ -89,6 +89,21 @@ def scrape_products():
 
     return products
 
+def clean_skateboard_data(products):
+    """Clean the product data to remove non-skateboard entries"""
+    clean_products = [
+        product for product in products
+        if (product['Product Name'].lower().find('skateboard') != -1 and
+            product['Price'] and  # Must have a price
+            product['Product Image'])  # Must have an image
+    ]
+    
+    removed_count = len(products) - len(clean_products)
+    if removed_count > 0:
+        print(f"Removed {removed_count} non-skateboard entries during cleaning")
+    
+    return clean_products
+
 def save_to_csv(products, filename='skateboards.csv'):
     # Define the field names for CSV
     fields = ["Product Name", "Price", "Product Image"]
@@ -106,13 +121,16 @@ def main():
         products = scrape_products()
         
         if products:
+            # Clean the data
+            clean_products = clean_skateboard_data(products)
+            
             # Save to CSV
-            save_to_csv(products)
-            print(f"Successfully scraped {len(products)} skateboards")
+            save_to_csv(clean_products)
+            print(f"Successfully scraped and cleaned {len(clean_products)} skateboards")
             
             # Print first few entries as sample
             print("\nSample of scraped data:")
-            for product in products[:3]:
+            for product in clean_products[:3]:
                 print(product)
         else:
             print("No products were found to scrape")
